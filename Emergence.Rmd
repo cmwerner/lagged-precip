@@ -1,0 +1,78 @@
+---
+title: "Emergence"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+
+theme_cw <- function () { 
+  theme_bw(base_size=12) %+replace% 
+    theme(
+      panel.background = element_blank(), 
+      plot.background = element_blank(), 
+      axis.ticks = element_line(colour = "grey70", size = rel(0.5)),
+      panel.grid.minor = element_blank(), 
+      panel.grid.major.x = element_blank(),
+      legend.background = element_blank(), 
+      legend.key = element_blank(),
+      strip.background = element_blank(), 
+     # axis.text=element_text(size=12),
+     # strip.text=element_text(size=12),
+      complete = TRUE
+      )
+}
+```
+
+## Emergence data from Jan 2022
+
+```{r emergence-data}
+
+datpath <- "~/Dropbox/Lagged-Precip/Data/"
+
+trt.key <- read.csv(paste0(datpath, "Plot-Layouts/block-key.csv")) %>%
+  select(block:treatment)
+
+emer <- read.csv(paste0(datpath, 
+                    'Emergence_2022-01/emergence-entered-data/lagged-precip_emergence_2022-01-25.csv')) %>%
+  mutate(weed.total = weed.forb + weed.grass + weed.moss) %>%
+  left_join(trt.key, by = 'block') 
+
+```
+
+
+```{r emergence-prelim}
+
+emer.sum <- emer %>% 
+  pivot_longer(cols = c(av, ss, sp.phyto, weed.forb, weed.grass, weed.moss, weed.total),
+               names_to = "species",
+               values_to = "quantity") %>%
+  group_by(treatment, bg, species) %>%
+  dplyr::summarise(
+    quantity.mean = mean(quantity),
+    quantity.present = sum(quantity > 0),
+    quantity.sd = sd(quantity)
+  )
+
+
+ggplot(filter(emer.sum, species %in% c('ss','av')), 
+       aes(x = treatment, y = quantity.mean, ymin = quantity.mean - quantity.sd,
+           ymax = quantity.mean + quantity.sd, color = species)) +
+  facet_wrap(vars(bg), scales = "free") +
+  geom_point(position = position_dodge(width = 0.5)) +
+  geom_errorbar(position = position_dodge(width = 0.5))+
+  theme_cw()
+
+# how many plots have phytometers present? Note that there are 16 control plots per climate treatment
+# but only 8 of the other backgrounds
+ggplot(filter(emer.sum, species %in% c('ss','av', 'sp.phyto')), 
+       aes(x = treatment, y = quantity.present, color = species,
+           fill = species)) +
+  facet_wrap(vars(bg), scales = "free_x") +
+  geom_bar(stat = "identity", position = position_dodge()) +
+  theme_cw()
+
+
+```
+
