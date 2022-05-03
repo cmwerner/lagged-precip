@@ -23,16 +23,22 @@ theme_cw <- function () {
       complete = TRUE
       )
 }
+
+datpath <- "~/Dropbox/Lagged-Precip/Data/"
+
+trt.key <- read.csv(paste0(datpath, "Plot-Layouts/block-key.csv")) %>%
+  select(block:treatment)
+
+sp.key <- read.csv(paste0(datpath, "stipa-avena_species-list.csv")) %>%
+  select(c(species.code, group))
+
+
 ```
 
 ## Emergence data from Jan 2022
 
 ```{r emergence-data}
 
-datpath <- "~/Dropbox/Lagged-Precip/Data/"
-
-trt.key <- read.csv(paste0(datpath, "Plot-Layouts/block-key.csv")) %>%
-  select(block:treatment)
 
 emer <- read.csv(paste0(datpath, 
                     'Emergence_2022-01/emergence-entered-data/lagged-precip_emergence_2022-01-25.csv')) %>%
@@ -76,3 +82,71 @@ ggplot(filter(emer.sum, species %in% c('ss','av', 'sp.phyto')),
 
 ```
 
+
+## Weed cover data from April 2022
+```{r emergence-data}
+
+cover <- read.csv(paste0(datpath, 
+                    'Fecundity_2022-04/fecundity_2022-04_entered-data/lagged-precip_spring-fecundity_2022-04-13.csv'))
+
+plot.key <- cover %>% select(block:treatment)
+
+cover.long <- cover %>% 
+  pivot_longer(cols = aircar:unkgrass_tiny_avena, 
+               names_to = 'species', values_to = 'cover',
+               values_drop_na = TRUE) %>%
+  left_join(sp.key, by = c("species" = "species.code"))
+
+cover.long.summary <- cover.long %>%
+  filter(species != 'avefat') %>%
+  group_by(block,plot, group) %>%
+  dplyr::summarise(
+    total.cover = sum(cover),
+    num.species = length(cover)
+  ) %>%
+  ungroup() %>%
+  complete(block, plot, group,
+           fill = list(total.cover = 0, num.species = 0)) %>%
+  left_join(plot.key, by = c('block', 'plot'))
+
+```
+
+Plotting weedy cover
+```{r}
+
+cover.long.sum.2 <- cover.long.summary %>% 
+  group_by(bg, treatment, group) %>%
+  dplyr::summarise(
+    cover.mean = mean(total.cover),
+    cover.se = sd(total.cover)/sqrt(length(total.cover)),
+    rich.mean = mean(num.species),
+    rich.se = sd(num.species)/sqrt(length(num.species))
+  )
+
+ggplot(cover.long.sum.2, 
+       aes(x = bg, y = cover.mean, ymin = cover.mean - cover.se, ymax = cover.mean + cover.se,
+           color = treatment)) +
+  facet_wrap(vars(group), scales = 'free') +
+  geom_point(position = position_dodge(width = 0.5)) +
+  geom_errorbar(position = position_dodge(width = 0.5)) +
+  theme_cw()
+ggsave('~/Dropbox/Lagged-Precip/Prelim-Figures/weedy-cover-group.pdf', width = 12, height = 6, units = 'in')
+
+cover.long.sum.3 <- cover.long.summary %>% 
+  group_by(bg, treatment) %>%
+  dplyr::summarise(
+    cover.mean = mean(total.cover),
+    cover.se = sd(total.cover)/sqrt(length(total.cover)),
+    rich.mean = mean(num.species),
+    rich.se = sd(num.species)/sqrt(length(num.species))
+  )
+
+ggplot(cover.long.sum.3, 
+       aes(x = bg, y = cover.mean, ymin = cover.mean - cover.se, ymax = cover.mean + cover.se,
+           color = treatment)) +
+  geom_point(position = position_dodge(width = 0.5)) +
+  geom_errorbar(position = position_dodge(width = 0.5)) +
+  theme_cw()
+ggsave('~/Dropbox/Lagged-Precip/Prelim-Figures/weedy-cover-total.pdf', width = 6, height = 4, units = 'in')
+
+```
