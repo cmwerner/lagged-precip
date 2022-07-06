@@ -13,6 +13,8 @@ rstan_options(auto_write = TRUE)
 #load(here("BH_simulations/test_multiple_simulations.RData")) # load in stipa_dat file
 
 # number of interacting species -- not treating the intraspecific competition differently here
+# NEED TO FIX -- ONE OF THESE SPECIES NAMES IS "NONE" WHICH WAS A PLACE HOLDER, THIS NEEDS TO BE REMOVED
+# AND THE MODELS NEED TO BE RERUN
 species_names <- stipa_dat %>% 
   select(-c(block, size, treatment, seed)) %>%
   names()

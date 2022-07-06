@@ -1,0 +1,112 @@
+---
+title: "stipa-forb_figures"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(ggplot2)
+library(rstan)
+library(HDInterval)
+load("stipa-forb_final-fit.rdata")
+
+# ALSO NEED TO RUN EMERGENCE.RMD
+species_names <- stipa_dat %>% 
+  select(-c(block, size, treatment, seed)) %>%
+  names()
+S <- species_names %>% length() 
+```
+
+
+```{r pars}
+post <- rstan::extract(FinalFit)
+species.include <- tibble(species_names, Inclusion_ij, Inclusion_eij)
+include.ij <- 
+
+
+# empty data frame
+plot.vals <- tibble(drought = c(0, 1), size_big = c(0, 1), 
+                    value = c("lambda", "alpha_gen")) %>% 
+  expand(drought, size_big, value) %>%
+  add_column(species = "focal") %>%
+  add_row(drought = 0, size_big = 0, value = "alpha_eij", species = species_names) %>%
+  add_row(drought = 0, size_big = 1, value = "alpha_eij", species = species_names) %>%
+  add_row(drought = 1, size_big = 0, value = "alpha_eij", species = species_names) %>%
+  add_row(drought = 1, size_big = 1, value = "alpha_eij", species = species_names) %>%
+  add_column(mean = 0, lower = 0, upper = 0) 
+
+# still need to change the include refs, which is complicated for this since a_ij and a_eij 
+# were selected separately. maybe have two columns (include_ij and include_eij)? to keep track
+include.ij.list <- c('focal', 
+                     species.include %>% filter(Inclusion_ij>0) %>% select(species_names) %>% deframe())
+include.eij.list <- c('focal', 
+                     species.include %>% filter(Inclusion_eij>0) %>% select(species_names) %>% deframe())
+
+
+plot.vals.2 <- plot.vals %>% 
+  mutate(
+    include.ij = ifelse(species %in% include.ij.list, 1, 0),
+    include.eij = ifelse(species %in% include.eij.list, 1, 0),
+  )
+
+
+# throws a bunch of errors but does what it's supposed to?
+plot.vals.3 <- plot.vals.2 %>%
+  group_by(drought, size_big) %>%
+  mutate(
+    mean = case_when(
+      value == "lambda" ~ mean(exp(post$lambda_0 + post$lambda_drought * drought + post$lambda_size * size_big)),
+      value == "alpha_gen" ~ mean(exp(post$alpha_generic[,1] + post$alpha_generic[,2] * drought)),
+      TRUE ~ 0 # next step is to get the non-generics in
+    ),
+    lower = case_when(
+      value == "lambda" ~ HDInterval::hdi(exp(post$lambda_0 + post$lambda_drought * drought + post$lambda_size * size_big))[["lower"]],
+      value == "alpha_gen" ~ HDInterval::hdi(exp(post$alpha_generic[,1] + post$alpha_generic[,2] * drought))[["lower"]],
+      TRUE ~ 0 # next step is to get the non-generics in
+    ),
+    upper = case_when(
+      value == "lambda" ~ HDInterval::hdi(exp(post$lambda_0 + post$lambda_drought * drought + post$lambda_size * size_big))[["upper"]],
+      value == "alpha_gen" ~ HDInterval::hdi(exp(post$alpha_generic[,1] + post$alpha_generic[,2] * drought))[["upper"]],
+      TRUE ~ 0 # next step is to get the non-generics in
+    )
+  )
+
+
+### not used/for reference ----------
+# from testing -- this one doesn't throw errors
+plot.vals.4 <- plot.vals.2 %>%
+  filter(value == "lambda") %>%
+  group_by(drought, size_big) %>%
+  mutate(mean = mean(exp(post$lambda_0 + post$lambda_drought * drought + post$lambda_size * size_big)))
+
+# this is from Topher's code and important for combining these values together
+# not fully set up yet and would rather do it as a df than a matrix
+# and include the generic alpha values too? 
+lambda.plot.vals.mat <- array(NA, dim = c(2, 2, 3)) # drought, size, metric (mean, lwr, upr)
+for(i in 0:1){ # drought
+  for(j in 0:1){ # size
+    drought.post <- exp(post$lambda_0 + post$lambda_drought*i + post$lambda_size*j)
+    lambda.plot.vals.mat[i+1,j+1,1] <- mean(drought.post)
+    lambda.plot.vals.mat[i+1,j+1,2:3] <- HDInterval::hdi(drought.post)
+  }
+}
+
+
+```
+
+```{r lambda-plot}
+
+plot.vals.gen <- filter(plot.vals.3, species == "focal")
+
+plot.vals.gen %>% 
+  ggplot(aes(x = factor(drought), y = mean, ymin = lower, ymax = upper)) +
+  facet_grid(rows = vars(value), cols = vars(size_big),
+             scales = "free") +
+  geom_point() +
+  geom_errorbar() +
+  theme_cw()
+
+
+```
+
