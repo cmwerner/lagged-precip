@@ -11,7 +11,7 @@ library(rstan)
 library(HDInterval)
 load("stipa-forb_final-fit.rdata")
 
-# ALSO NEED TO RUN EMERGENCE.RMD
+#source("Emergence.Rmd")
 species_names <- stipa_dat %>% 
   select(-c(block, size, treatment, seed)) %>%
   names()
@@ -21,8 +21,9 @@ S <- species_names %>% length()
 
 ```{r pars}
 post <- rstan::extract(FinalFit)
-species.include <- tibble(species_names, Inclusion_ij, Inclusion_eij)
-include.ij <- 
+species.include <- tibble(species_names, inclusion_ij = Inclusion_ij, 
+                          inclusion_eij = Inclusion_eij, num = 1:37)
+
 
 
 # empty data frame
@@ -37,38 +38,40 @@ plot.vals <- tibble(drought = c(0, 1), size_big = c(0, 1),
   add_column(mean = 0, lower = 0, upper = 0) 
 
 # still need to change the include refs, which is complicated for this since a_ij and a_eij 
-# were selected separately. maybe have two columns (include_ij and include_eij)? to keep track
-include.ij.list <- c('focal', 
-                     species.include %>% filter(Inclusion_ij>0) %>% select(species_names) %>% deframe())
-include.eij.list <- c('focal', 
-                     species.include %>% filter(Inclusion_eij>0) %>% select(species_names) %>% deframe())
+# # were selected separately. maybe have two columns (include_ij and include_eij)? to keep track
+# include.ij.list <- c('focal', 
+#                      species.include %>% filter(inclusion_ij>0) %>% select(species_names) %>% deframe())
+# include.eij.list <- c('focal', 
+#                      species.include %>% filter(inclusion_eij>0) %>% select(species_names) %>% deframe())
 
 
-plot.vals.2 <- plot.vals %>% 
-  mutate(
-    include.ij = ifelse(species %in% include.ij.list, 1, 0),
-    include.eij = ifelse(species %in% include.eij.list, 1, 0),
-  )
+plot.vals.2 <- plot.vals %>% left_join(species.include, by = c("species" = "species_names"))
 
 
 # throws a bunch of errors but does what it's supposed to?
 plot.vals.3 <- plot.vals.2 %>%
-  group_by(drought, size_big) %>%
+  group_by(drought, size_big, num) %>%
   mutate(
     mean = case_when(
       value == "lambda" ~ mean(exp(post$lambda_0 + post$lambda_drought * drought + post$lambda_size * size_big)),
       value == "alpha_gen" ~ mean(exp(post$alpha_generic[,1] + post$alpha_generic[,2] * drought)),
-      TRUE ~ 0 # next step is to get the non-generics in
+      TRUE ~ mean(exp(post$alpha_generic[,1] +
+                        inclusion_ij * post$alpha_hat_ij[,num] +
+                        (post$alpha_generic[,2] + inclusion_eij * post$alpha_hat_eij[,num]) * drought))
     ),
     lower = case_when(
       value == "lambda" ~ HDInterval::hdi(exp(post$lambda_0 + post$lambda_drought * drought + post$lambda_size * size_big))[["lower"]],
       value == "alpha_gen" ~ HDInterval::hdi(exp(post$alpha_generic[,1] + post$alpha_generic[,2] * drought))[["lower"]],
-      TRUE ~ 0 # next step is to get the non-generics in
+      TRUE ~ HDInterval::hdi(exp(post$alpha_generic[,1] +
+                        inclusion_ij * post$alpha_hat_ij[,num] +
+                        (post$alpha_generic[,2] + inclusion_eij * post$alpha_hat_eij[,num]) * drought))[[1]] # not sure why this is working and not [["lower"]] seems like it should be the same?
     ),
     upper = case_when(
       value == "lambda" ~ HDInterval::hdi(exp(post$lambda_0 + post$lambda_drought * drought + post$lambda_size * size_big))[["upper"]],
       value == "alpha_gen" ~ HDInterval::hdi(exp(post$alpha_generic[,1] + post$alpha_generic[,2] * drought))[["upper"]],
-      TRUE ~ 0 # next step is to get the non-generics in
+      TRUE ~ HDInterval::hdi(exp(post$alpha_generic[,1] +
+                        inclusion_ij * post$alpha_hat_ij[,num] +
+                        (post$alpha_generic[,2] + inclusion_eij * post$alpha_hat_eij[,num]) * drought))[[2]]
     )
   )
 
@@ -106,6 +109,19 @@ plot.vals.gen %>%
   geom_point() +
   geom_errorbar() +
   theme_cw()
+
+
+plot.vals.aeij <- filter(plot.vals.3, value == "alpha_eij", size_big == 0)
+
+plot.vals.aeij %>% 
+  ggplot(aes(x = species, y = log(mean), ymin = log(lower), ymax = log(upper),
+             color = factor(inclusion_ij), shape = factor(inclusion_eij))) +
+  facet_wrap(vars(drought)) +
+  geom_point(position = position_dodge(width = 0.5)) +
+  geom_errorbar(width = 0.2, position = position_dodge(width = 0.5)) +
+  theme_cw() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+  
 
 
 ```
