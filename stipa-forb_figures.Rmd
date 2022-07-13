@@ -47,29 +47,27 @@ plot.vals.3 <- plot.vals.2 %>%
     mean = case_when(
       value == "lambda" ~ mean(exp(post$lambda_0 + post$lambda_drought * drought + post$lambda_size * size_big)),
       value == "alpha_gen" ~ mean(exp(post$alpha_generic_0 + post$alpha_generic_size * size_big + post$alpha_generic_drought * drought)),
-    #  TRUE ~ mean(exp(post$alpha_generic_0 + post$alpha_generic_size * size_big +
-     #                  inclusion_ij * post$alpha_hat_ij[,num] +
-      #                  (post$alpha_generic_drought + inclusion_eij * post$alpha_hat_eij[,num]) * drought))
-    TRUE ~ mean(exp(post$alpha_generic_0 + post$alpha_generic_size * size_big +
+      TRUE ~ mean(exp(as.vector(post$alpha_generic_0 + post$alpha_generic_size * size_big) +
                        inclusion_ij * post$alpha_hat_ij[,num] +
-                        (post$alpha_generic_drought + inclusion_eij * post$alpha_hat_eij[,num]) * drought))
-   # TRUE ~ 0
+                        (as.vector(post$alpha_generic_drought) + inclusion_eij * post$alpha_hat_eij[,num]) * drought))
     ),
     lower = case_when(
       value == "lambda" ~ HDInterval::hdi(exp(post$lambda_0 + post$lambda_drought * drought + post$lambda_size * size_big))[["lower"]],
       value == "alpha_gen" ~ HDInterval::hdi(exp(post$alpha_generic_0 + post$alpha_generic_size * size_big + post$alpha_generic_drought * drought))[["lower"]],
-      TRUE ~ 0
-     # TRUE ~ HDInterval::hdi(exp(post$alpha_generic_0 + post$alpha_generic_size * size_big +
-    #                    inclusion_ij * post$alpha_hat_ij[,num] +
-    #                    (post$alpha_generic_drought + inclusion_eij * post$alpha_hat_eij[,num]) * drought))[[1]] 
+      TRUE ~ HDInterval::hdi(exp(as.vector(post$alpha_generic_0 + 
+                                             post$alpha_generic_size * size_big) +
+                        inclusion_ij * post$alpha_hat_ij[,num] +
+                        (as.vector(post$alpha_generic_drought)
+                         + inclusion_eij * post$alpha_hat_eij[,num]) * drought))[[1]] 
     ),
     upper = case_when(
       value == "lambda" ~ HDInterval::hdi(exp(post$lambda_0 + post$lambda_drought * drought + post$lambda_size * size_big))[["upper"]],
       value == "alpha_gen" ~ HDInterval::hdi(exp(post$alpha_generic_0 + post$alpha_generic_size * size_big + post$alpha_generic_drought * drought))[["upper"]],
-      TRUE ~ 0
-    #  TRUE ~ HDInterval::hdi(exp(post$alpha_generic_0 + post$alpha_generic_size * size_big +
-    #                    inclusion_ij * post$alpha_hat_ij[,num] +
-    #                    (post$alpha_generic_drought + inclusion_eij * post$alpha_hat_eij[,num]) * drought))[[2]]
+      TRUE ~ HDInterval::hdi(exp(as.vector(post$alpha_generic_0 +
+                                             post$alpha_generic_size * size_big) +
+                        inclusion_ij * post$alpha_hat_ij[,num] +
+                        (as.vector(post$alpha_generic_drought)
+                         + inclusion_eij * post$alpha_hat_eij[,num]) * drought))[[2]]
     )
   )
 
@@ -132,7 +130,7 @@ plot.vals.aeij %>%
   theme_cw() +
   theme(axis.text.x = element_text(angle = 90, hjust = 1))
 
-#ggsave('stipa-forb_prelim-fig_alphas-2.pdf', width = 11, height = 4, units = 'in')
+ggsave('stipa-forb_prelim-fig_alphas-2.pdf', width = 11, height = 4, units = 'in')
 
 
 ```

@@ -210,7 +210,7 @@ ggplot(stipa, aes(x = diam, y = seed,
   theme_cw()
 
 stipa.wide <- stipa %>% pivot_wider(names_from = "species", values_from = "count", values_fill = 0) %>%
-  select(-c(awns, tillers_im, diseased))
+  select(-c(awns, tillers_im, diseased, none))
 
 stipa_dat <- stipa.wide %>% 
   select(-c(plot, focal, tillers, bg, diam))
