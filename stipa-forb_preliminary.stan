@@ -24,7 +24,10 @@ parameters{
   real lambda_0;
   real lambda_size;
   real lambda_drought;
-  vector[2] alpha_generic_tilde; // first element is intercept, second is drought effect
+  real alpha_generic_tilde_0;
+  real alpha_generic_tilde_size;
+  real alpha_generic_tilde_drought;
+ // vector[2] alpha_generic_tilde; // first element is intercept, second is drought effect
  // vector[2] alpha_intra_tilde;
   vector[S] alpha_hat_ij_tilde; // non-generic intercepts
   vector[S] alpha_hat_eij_tilde; // non-generic drought effect
@@ -43,26 +46,30 @@ transformed parameters{
   vector[S] local_shrinkage_ij_tilde;
   vector[S] alpha_hat_eij;
   vector[S] local_shrinkage_eij_tilde;
-  vector[2] alpha_generic;
- // vector[2] alpha_intra;
-
+  real alpha_generic_0;
+  real alpha_generic_size;
+  real alpha_generic_drought;
+  // vector[2] alpha_generic;
+  // vector[2] alpha_intra;
+  
   tau = tau0*tau_tilde; 	// tau ~ cauchy(0, tau0)
   c2 = slab_scale2*c2_tilde;	// c2 ~ inv_gamma(half_slab_df, half_slab_df*slab_scale2)
-
+  
   // This calculation follows equation 2.8 in Piironen and Vehtari 2017
   for(s in 1:S){
     local_shrinkage_ij_tilde[s] = sqrt( c2 * square(local_shrinkage_ij[s]) / (c2 + square(tau) * square(local_shrinkage_ij[s])) );
     alpha_hat_ij[s] = tau * local_shrinkage_ij_tilde[s] * alpha_hat_ij_tilde[s];
-
+    
     local_shrinkage_eij_tilde[s] = sqrt( c2 * square(local_shrinkage_eij[s]) / (c2 + square(tau) * square(local_shrinkage_eij[s])) );
     alpha_hat_eij[s] = tau * local_shrinkage_eij_tilde[s] * alpha_hat_eij_tilde[s];
   }
-
+  
   // scale the lambdas and alphas values
-  alpha_generic[1] = 3 * alpha_generic_tilde[1] - 6;
-//  alpha_intra[1] = 3 * alpha_intra_tilde[1] - 6;
-  alpha_generic[2] = 0.5 * alpha_generic_tilde[2];
-//  alpha_intra[2] = 0.5 * alpha_intra_tilde[2];
+  alpha_generic_0 = 3 * alpha_generic_tilde_0 - 6;
+  //  alpha_intra[1] = 3 * alpha_intra_tilde[1] - 6;
+  alpha_generic_size = 0.5 * alpha_generic_tilde_size;
+  alpha_generic_drought = 0.5 * alpha_generic_tilde_drought;
+  //  alpha_intra[2] = 0.5 * alpha_intra_tilde[2];
 }
 
 model{
@@ -75,7 +82,9 @@ model{
   vector[N] lambda_ei;
 
   // set regular priors
-  alpha_generic_tilde ~ normal(0,1);
+  alpha_generic_tilde_0 ~ normal(0,1);
+  alpha_generic_tilde_size ~ normal(0,1);
+  alpha_generic_tilde_drought ~ normal(0,1);
 //  alpha_intra_tilde ~ normal(0,1);
   lambda_0 ~ normal(0, 1);
   lambda_size ~ normal(0, 1);
@@ -96,7 +105,7 @@ model{
   for(i in 1:N){
     lambda_ei[i] = exp(lambda_0 + lambda_size*size_big[i] + lambda_drought*drought[i]);
     for(s in 1:S){
-        alpha_eij[i,s] = exp(alpha_generic[1]  + alpha_hat_ij[s] + (alpha_generic[2] + alpha_hat_eij[s]) * drought[i]);
+        alpha_eij[i,s] = exp(alpha_generic_0 + alpha_generic_size*size_big[i] + alpha_hat_ij[s] + (alpha_generic_drought + alpha_hat_eij[s]) * drought[i]);
     }
     interaction_effects[i] = sum(alpha_eij[i,] .* sp_matrix[i,]);
     

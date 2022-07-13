@@ -2,7 +2,7 @@
 #       environmental covariate. A separate script will then make the empirical
 #       figures for the manuscript
 
-rm(list = ls())
+#rm(list = ls())
 library(rstan)
 library(here)
 library(HDInterval)
@@ -13,8 +13,6 @@ rstan_options(auto_write = TRUE)
 #load(here("BH_simulations/test_multiple_simulations.RData")) # load in stipa_dat file
 
 # number of interacting species -- not treating the intraspecific competition differently here
-# NEED TO FIX -- ONE OF THESE SPECIES NAMES IS "NONE" WHICH WAS A PLACE HOLDER, THIS NEEDS TO BE REMOVED
-# AND THE MODELS NEED TO BE RERUN
 species_names <- stipa_dat %>% 
   select(-c(block, size, treatment, seed)) %>%
   names()
@@ -42,8 +40,8 @@ prelim_fit <- stan(file = "stipa-forb_preliminary.stan", data = data_vec, iter =
 prelim_posteriors <- extract(prelim_fit)
 
 ####
-save(prelim_fit, prelim_posteriors, file = "stipa-forb_prelim-fit_2.rdata")
-load("stipa-forb_prelim-fit.rdata")
+save(prelim_fit, prelim_posteriors, file = "stipa-forb_prelim-fit_3.rdata")
+#load("stipa-forb_prelim-fit_3.rdata")
 ####
 
 PrelimFit <- prelim_fit # just changing between my and Topher's notation style
@@ -58,11 +56,12 @@ hist(summary(PrelimFit)$summary[,"n_eff"])
 traceplot(PrelimFit, pars = "lambda_0")
 traceplot(PrelimFit, pars = "lambda_size")
 traceplot(PrelimFit, pars = "lambda_drought")
-traceplot(PrelimFit, pars = "alpha_generic")
+traceplot(PrelimFit, pars = "alpha_generic_0")
+traceplot(PrelimFit, pars = "alpha_generic_size")
 # traceplot(PrelimFit, pars = "alpha_hat_ij") # takes a long time to draw with a lot of species
 # traceplot(PrelimFit, pars = "alpha_hat_eij")
 # Check for parameter correlations and divergent transitions
-pairs(PrelimFit, pars = c("lambda_0","lambda_size","lambda_drought", "alpha_generic"))
+pairs(PrelimFit, pars = c("lambda_0","lambda_size","lambda_drought", "alpha_generic_0"))
 # Check for autocorrelation in key parameters
 acf(PrelimPosteriors$alpha_generic[,1])
 acf(PrelimPosteriors$alpha_generic[,2])
@@ -96,6 +95,27 @@ plot(PrelimFit, pars = "alpha_hat_eij")
 
 include.df <- data.frame(species_names, Inclusion_ij, Inclusion_eij)
 
+# want to dis-include species only present in one plot in either drought or not-drought treatments
+# as these single values can skew inclusion. This is a first pass, but might want to fine-tune it
+sp.abundance <- stipa %>%
+  group_by(species, treatment) %>%
+  dplyr::summarise(
+    count.sum = sum(count)
+  ) %>% filter(!(species == 'none'))
+
+sp.low.presence <- unique(sp.abundance$species[sp.abundance$count.sum < 2])
+include.df <- include.df %>% mutate(
+  sufficient = case_when(
+    species_names %in% sp.low.presence ~ 0,
+    TRUE ~ 1
+  ),
+  Inclusion_ij = Inclusion_ij * sufficient,
+  Inclusion_eij = Inclusion_eij * sufficient
+)
+
+Inclusion_ij <- include.df$Inclusion_ij
+Inclusion_eij <- include.df$Inclusion_eij
+
 # Reset initial conditions with values from the preliminary fit
 # WORK ON THIS LATER
 # ChainInitials <- list(lambda_0 = colMeans(PrelimPosteriors$lambda_0), 
@@ -117,18 +137,18 @@ FinalFit <- stan(file = "stipa-forb_final.stan", data = FinalDataVec, iter = 300
 Posteriors <- extract(FinalFit)
 
 # If the fit looks good, safe the final output here
-save(FinalFit, Posteriors, Inclusion_ij, Inclusion_eij, file = "stipa-forb_final-fit.rdata")
+save(FinalFit, Posteriors, Inclusion_ij, Inclusion_eij, file = "stipa-forb_final-fit_3.rdata")
 #load("stipa-forb_final-fit.rdata")
 
 # Examine the same diagnostic plots as before to check for problems with the 
 #       final model fit
-pairs(FinalFit, pars = c("lambda_0","lambda_size","lambda_drought", "alpha_generic"))
+pairs(FinalFit, pars = c("lambda_0","lambda_size","lambda_drought", "alpha_generic_0"))
 hist(summary(FinalFit)$summary[,"Rhat"])
 hist(summary(FinalFit)$summary[,"n_eff"])
 traceplot(FinalFit, pars = "lambda_0")
 traceplot(FinalFit, pars = "lambda_size")
 traceplot(FinalFit, pars = "lambda_drought")
-traceplot(FinalFit, pars = "alpha_generic")
+traceplot(FinalFit, pars = "alpha_generic_0")
 which(Inclusion_ij == 1)
 #traceplot(FinalFit, pars = "alpha_hat_ij")
 which(Inclusion_eij == 1)

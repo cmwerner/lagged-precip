@@ -17,7 +17,9 @@ parameters{
   real lambda_0;
   real lambda_size;
   real lambda_drought;
-  vector[2] alpha_generic_tilde; // first element is intercept, second is drought effect
+  real alpha_generic_tilde_0;
+  real alpha_generic_tilde_size;
+  real alpha_generic_tilde_drought;
  // vector[2] alpha_intra_tilde;
   vector[S] alpha_hat_ij; // non-generic intercepts
   vector[S] alpha_hat_eij; // non-generic drought effect
@@ -26,12 +28,15 @@ parameters{
 transformed parameters{
   // Calculate the scaled parameters needed for the regularized horeshoe prior here from the normalized (and thus easier to sample)
   // 	counterparts declared in the parameters block
-  vector[2] alpha_generic;
+  real alpha_generic_0;
+  real alpha_generic_size;
+  real alpha_generic_drought;
  // vector[2] alpha_intra;
  
   // scale the lambdas and alphas values
-  alpha_generic[1] = 3 * alpha_generic_tilde[1] - 6;
-  alpha_generic[2] = 0.5 * alpha_generic_tilde[2];
+  alpha_generic_0 = 3 * alpha_generic_tilde_0 - 6;
+  alpha_generic_size = 0.5 * alpha_generic_tilde_size;
+  alpha_generic_drought = 0.5 * alpha_generic_tilde_drought;
   //  alpha_intra[1] = 3 * alpha_intra_tilde[1] - 6;
 //  alpha_intra[2] = 0.5 * alpha_intra_tilde[2];
 }
@@ -46,7 +51,9 @@ model{
   vector[N] lambda_ei;
 
   // set regular priors
-  alpha_generic_tilde ~ normal(0,1);
+  alpha_generic_tilde_0 ~ normal(0,1);
+  alpha_generic_tilde_size ~ normal(0,1);
+  alpha_generic_tilde_drought ~ normal(0,1);
  // alpha_intra_tilde ~ normal(0,1);
   lambda_0 ~ normal(0, 1);
   lambda_size ~ normal(0, 1);
@@ -59,7 +66,7 @@ model{
   for(i in 1:N){
     lambda_ei[i] = exp(lambda_0 + lambda_size*size_big[i] + lambda_drought*drought[i]);
     for(s in 1:S){
-        alpha_eij[i,s] = exp(alpha_generic[1]  + Inclusion_ij[s] * alpha_hat_ij[s]  + (alpha_generic[2] + Inclusion_eij[s] * alpha_hat_eij[s]) * drought[i]);
+        alpha_eij[i,s] = exp(alpha_generic_0 + alpha_generic_size*size_big[i]  + Inclusion_ij[s] * alpha_hat_ij[s]  + (alpha_generic_drought + Inclusion_eij[s] * alpha_hat_eij[s]) * drought[i]);
     }
     interaction_effects[i] = sum(alpha_eij[i,] .* sp_matrix[i,]);
     
