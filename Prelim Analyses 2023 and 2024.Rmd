@@ -9,6 +9,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 library(here)
 library(tidyverse)
+library(lme4)
 
 theme_cw <- function () { 
   theme_bw(base_size=12) %+replace% 
@@ -155,10 +156,14 @@ Dropped block 9 in 2023 and additionally dropped block 3 in 2024, and some addit
 
 For now, only focusing on phytometers -- note that we also have fecundity information from low- and high-density stipa background plots, which can increase the information when incorporated in a model
 
+Stipa phytometers are largest in control plots, slightly smaller in avena and ss plots,and smallest in SP plots, with corresponding difference in fecundity as size seems to be the biggest predictor of fecundity. Drought treatment doesn't consistently affect stipa size or fecundity, but may somewhat increase number of seeds per tiller. There may be a negative impact of drought in the Avena background plots, which would be really interesting
+
 Analysis questions:
 - Focus on phyotometers only, or include fecundity and surivival information from low- and high-density stipa background plots? 
 
 - How to incorporate seeds/tiller information? 
+
+- Do we have enough survival information to look at drought effects, or is it mostly just gopher damage?
 ```{r stipa-fecundity}
 
 # phytometers only for now
@@ -184,6 +189,36 @@ stipa_fec_phy %>%
     scale_color_manual(values = drought.colors) +
   geom_boxplot()
 
+# tillers by size by treatment
+stipa_fec_phy %>%
+  mutate(
+    bg.2 = case_when(
+      bg %in% c("a_low", "a_high") ~ "avena",
+      bg %in% c("sp_low", "sp_high") ~ "sp",
+      bg %in% c("ss_low", "ss_high") ~ "ss",
+      bg == "control" ~ "control",
+      .default = "NA"
+    )) %>%
+  ggplot(aes(x = sp_diam, y = sp_tillers, 
+             color = bg.2, shape = treatment, linetype = treatment)) +
+  facet_wrap(vars(year)) + 
+#  scale_color_manual(values = drought.colors) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +
+  theme_cw()
+  
+
+stipa_phy_size_m <- lmer(sp_diam ~ bg + treatment + year + (1|block), 
+                    data = stipa_fec_phy)
+summary(stipa_phy_size_m)
+
+stipa_phy_fec_m <- lmer(sp_tillers ~ bg + sp_diam + treatment + year + (1|block), 
+                    data = stipa_fec_phy)
+summary(stipa_phy_fec_m)
+
+stipa_phy_fec2_m <- lmer(seeds_tiller ~ bg + treatment + year + (1|block), 
+                    data = stipa_fec_phy)
+summary(stipa_phy_fec2_m)
 
 # large stipa in background plots
 stipa_fec_big <- stipa_fec %>% filter(sp_type == "big", !is.na(sp_tillers))
@@ -222,17 +257,29 @@ stipa_fec %>%
 stipa_fec %>%
   filter(bg %in% c("sp_high", "sp_low"), sp_type %in% c("phyto", "big", "med")) %>%
   ggplot(aes(x = sp_diam, y = sp_tillers, 
-             color = treatment, shape = sp_type, linetype = sp_type)) +
+             color = treatment)) +
   facet_wrap(vars(year)) + 
   scale_color_manual(values = drought.colors) +
   geom_point() +
-  geom_smooth(method = "lm", se = FALSE)
+  geom_smooth(method = "lm", se = TRUE)
 
+# drought has a lower intercept but a higher slope
+# these are very minor differences compared to the effect of size
+stipa_fec$year <- as.factor(stipa_fec$year)
+stipa_fec_m <- lmer(sp_tillers ~ sp_diam*treatment*year + (1|block.id), 
+                  data = stipa_fec)
 
+summary(stipa_fec_m)
+
+stipa_size_m <- lmer(sp_diam ~ treatment*year + (1|block.id), data = stipa_fec)
+summary(stipa_size_m)
 
 ```
 
 ## Avena Density and Fecundity
+Drought has minimal effects on density in 2023, neg in 2024 (I think I'm interpreting that right, need to check). Drought has minimal effects on avena fecundity
+
+Overall avena density was higher in 2024 (the less intensely wet year) -- although that may be partially due to the previous year's seed drop. When we compare the seeded side (sub1) to the unseeded site (sub2) they are quite similar
 
 ```{r avena}
 
@@ -240,20 +287,39 @@ stipa_fec %>%
 avena <- avena %>%
   mutate(
     density = case_when(
-      location == "full" ~ plants * 2, # 0.5 x 1m full plot
+      location == "full" ~ plants * 2.18, # 0.5 x 1m full plot, minus the two .2 x .2 subplots
       .default = plants * 25 # 0.2 x 0.2 m subplot
     )
-  )  
+  )
+
+avena %>%
+  filter(year == 2024) %>%
+  ggplot(aes(x = location, y = density, color = treatment)) + 
+  facet_wrap(vars(bg), scales = "free") +
+  scale_color_manual(values = drought.colors) +
+  geom_boxplot()
+
+# might be better to add the subplot densities back into the full plot and then take the averages?
+avena.plot <- avena %>%
+  group_by(block, plot, bg, year, treatment) %>%
+  summarise(
+    mean.dens = mean(density, na.rm = TRUE) 
+  )
 
 # want to also then average densities across subplots so we only have one average plant density value per plot
 # but need to do this carefully so it's a real average not counting per number of plants measured
 
 # avena density preliminary graph
-avena %>% 
-  ggplot(aes(x = bg, y = density, color = treatment)) +
+avena.plot %>% 
+  ggplot(aes(x = bg, y = mean.dens, color = treatment)) +
   facet_wrap(vars(year)) +
-    scale_color_manual(values = drought.colors) +
+  scale_color_manual(values = drought.colors) +
   geom_boxplot()
+
+avena.plot$year = as.factor(avena.plot$year)
+avena_m <- lmer(mean.dens ~ bg + year*treatment + (1|block), 
+                data = avena.plot)
+summary(avena_m)
 
 # avena fecundity preliminary graph (seeds/plant way lower in 2024 -- were we counting the same way? this does fit with my memory)
 avena %>% 
@@ -262,11 +328,17 @@ avena %>%
     scale_color_manual(values = drought.colors) +
   geom_boxplot()
 
+avena_fec_m <- lmer(seeds ~ bg + year*treatment + (1|block), 
+                data = avena)
+summary(avena_fec_m)
+
 ```
 
 
 
 ## Stipa seedling density, survival, and fecundity
+Stipa seedlings emergence/survival may be slightly lower in drought treatments
+Still need to look at stipa seedling survival estimates overall
 ```{r stipa-seedling}
 
 ss_23 %>%
@@ -281,3 +353,9 @@ ss_23 %>%
 
 ```
 
+# Next steps
+I think the next stage is combining things together into a BH model with alpha competition estimates. I'm not entirely sure how to break down size/fecundity vs population size (which we don't really have) but maybe a separate model for SP size and/or fecundity with predictors of actual SP density and AV density and drought treatment (rather than just the categorical background treatment) -- not BH, just a mixed model? 
+
+For Avena, probably need to wade back in to density methods to get a sense of seeds in vs seeds out (if that's something we decide we're incoporating into the model)
+
+Can also get into the biomass data

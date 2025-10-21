@@ -1,0 +1,100 @@
+---
+title: "Lagged Precip Biomass"
+output: html_document
+date: "2025-10-03"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(here)
+library(tidyverse)
+library(lme4)
+
+theme_cw <- function () { 
+  theme_bw(base_size=12) %+replace% 
+    theme(
+      panel.background = element_blank(), 
+      plot.background = element_blank(), 
+      axis.ticks = element_line(colour = "grey70", size = rel(0.5)),
+      panel.grid.minor = element_blank(), 
+      panel.grid.major.x = element_blank(),
+      legend.background = element_blank(), 
+      legend.key = element_blank(),
+      strip.background = element_blank(), 
+     # axis.text=element_text(size=12),
+     # strip.text=element_text(size=12),
+      complete = TRUE
+      )
+}
+```
+
+## Reading in Data
+
+
+```{r data-read}
+datpath <- "data/"
+
+# block and plot key
+trt.key <- read.csv(paste0(datpath, "plot-layout/block-key.csv")) %>%
+  select(block:treatment) %>%
+  mutate(treatment = ifelse(treatment == "dry", "drought", "ambient"),
+         block = as.factor(block))
+
+# Biomass 2024
+biomass <- read.csv(paste0(datpath, "lagged-precip_stipa-avena-biomass_2024.csv")) %>%
+  left_join(trt.key, by = "block") %>%
+  rename("gross.biomass" = "biomass..incl..bag.",
+         "bag.mass" = "mass.of.bag..g.") %>%
+  mutate(biomass = gross.biomass - bag.mass,
+         sample = str_remove_all(sample, " "), # there might be a cleaner way to strip whitespace
+         bg = case_when(
+           bg == "" ~ "outside plot",
+           .default = bg
+         )) 
+
+
+drought.colors <- c("#0077CC", "#CD622E")
+
+```
+
+There's a couple ways to think about biomass. We can think about total biomass in each plot, with the combination of stipa and avena. Or we can think about how each of those differs with drought treatment and in the presence of the other
+
+# Biomass preliminary
+Stipa phytometer biomass is similar or slightly higher in drought treatment, highest in control, med in avena, lowest in sp
+
+Avena biomass is lower in drought treatments
+
+Stipa background biomass doesn't differ much with drought
+```{r stipa}
+biomass_st_phy <- biomass %>% filter(sample == "stipaphytometer")
+
+biomass_st_phy %>% 
+  ggplot(aes(x = bg, y = biomass, color = treatment)) +
+  geom_boxplot() + 
+  scale_color_manual(values = drought.colors) +
+  theme_cw() +
+  ylab('Stipa phytometer biomass')
+
+
+biomass_avena <- biomass %>% filter(sample == "avena")
+
+biomass_avena %>%
+  ggplot(aes(x = bg, y = biomass, color = treatment)) +
+  geom_boxplot() + 
+  scale_color_manual(values = drought.colors) +
+  theme_cw() +
+  ylab('Avena biomass')
+
+biomass_st_bg <- biomass %>% filter(sample == "stipabackground")
+
+biomass_st_bg %>%
+  ggplot(aes(x = bg, y = biomass, color = treatment)) +
+  geom_boxplot() + 
+  scale_color_manual(values = drought.colors) +
+  theme_cw() +
+  ylab('Stipa background biomass')
+
+```
+
+

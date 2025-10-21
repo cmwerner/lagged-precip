@@ -1,0 +1,101 @@
+block,plot,bg,sample,,mass of bag (g),biomass (incl. bag),weighed by (name)
+1,5,control,stipa phytometer ,,44.9,75.6,Andrea
+1,5,control,avena,* no avena in plot,NA,,
+1,6,S_P high,stipa phytometer ,,8,24.1,Andrea
+1,6,S_P high,avena,* no avena in plot,NA,,
+1,6,S_P high,stipa background,,47.1,425.9,Andrea
+1,8,A high,stipa phytometer ,,8.1,28.5,Andrea
+1,8,A high,avena,,7.6,14.6,Andrea
+2,4,control,stipa phytometer ,,8.8,29.7,Andrea
+2,4,control,avena,,8.2,40.9,Andrea
+2,5,S_P high,stipa phytometer ,* no stipa phytometer in plot,NA,,
+2,5,S_P high,avena,,8,77.6,Andrea
+2,5,S_P high,stipa background,,41.7,220.6,Andrea
+2,6,A high,stipa phytometer ,,8.7,46.9,Andrea
+2,6,A high,avena,,44.6,113.9,Andrea
+4,1,A high,stipa phytometer ,,7.6,13.7,Andrea
+4,1,A high,avena,,45.1,183.1,Andrea
+4,6,S_P high,stipa phytometer ,,7.8,26.6,Andrea
+4,6,S_P high,avena,,8.2,32.8,Andrea
+4,6,S_P high,stipa background,,35.8,187.4,Andrea
+4,8,control,stipa phytometer ,,7.8,13.5,Andrea
+4,8,control,avena,,7.9,14.2,Andrea
+5,3,S_P high,stipa phytometer ,,7.7,11.8,Andrea
+5,3,S_P high,avena,,8.3,42.7,Andrea
+5,3,S_P high,stipa background,,47.1,187.8,Andrea
+5,7,A high,stipa phytometer ,,7.4,17,Andrea
+5,7,A high,avena,,47.9,125.9,Andrea
+5,8,control,stipa phytometer ,,7.4,11.6,Andrea
+5,8,control,avena,,8.8,39.8,Andrea
+6,2,A high,stipa phytometer ,,7.4,18.9,TF
+6,2,A high,avena,,7.4,19.8,TF
+6,7,control,stipa phytometer ,,7.4,51.7,TF
+6,7,control,avena,,7.5,13.1,TF
+6,8,S_P high,stipa phytometer ,,7.4,25.4,TF
+6,8,S_P high,avena,,7.3,9.4,TF
+6,8,S_P high,stipa background,,43.1,217.9,TF
+7,1,S_P high,stipa phytometer ,,7.4,20.7,TF
+7,1,S_P high,avena,,7.4,12.7,TF
+7,1,S_P high,stipa background,,43.1,337.7,TF
+7,3,A high,stipa phytometer ,,7.4,85.2,TF
+7,3,A high,avena,,43.2,277.7,TF
+7,8,control,stipa phytometer ,,7.5,32.4,TF
+7,8,control,avena,,7.5,24.3,TF
+8,2,S_P high,stipa phytometer ,,7.4,17,NH
+8,2,S_P high,avena,,7.4,27.3,NH
+8,2,S_P high,stipa background,,43.2,243.6,NH
+8,3,A high,stipa phytometer ,,7.4,27.3,NH
+8,3,A high,avena,,43.2,112.8,NH
+8,4,control,stipa phytometer ,,7.4,43.5,NH
+8,4,control,avena,,7.4,50.9,NH
+10,5,S_P high,stipa phytometer ,,7.4,10.3,NH
+10,5,S_P high,avena,,7.4,19.6,NH
+10,5,S_P high,stipa background,,43.2,265.5,NH
+10,6,A high,stipa phytometer ,,7.4,28.3,NH
+10,6,A high,avena,,7.4,53.8,NH
+10,7,control,stipa phytometer ,,7.4,34,NH
+10,7,control,avena,,7.4,35.1,NH
+11,3,control,stipa phytometer ,,7.4,47.3,NH
+11,3,control,avena,,7.4,51.5,NH
+11,5,S_P high,stipa phytometer ,,7.4,24.2,NH
+11,5,S_P high,avena,,7.4,46.4,NH
+11,5,S_P high,stipa background,,43.2,339.3,NH
+11,8,A high,stipa phytometer ,* no stipa phytometer in plot,,NA,NH
+11,8,A high,avena,,7.4,59.6,NH
+12,1,control,stipa phytometer ,,7.4,8.6,NH
+12,1,control,avena,,7.4,7.8,NH
+12,2,A high,stipa phytometer ,* no stipa phytometer in plot,,NA,NH
+12,2,A high,avena,,7.4,27.7,NH
+12,3,S_P high,stipa phytometer ,* no stipa phytometer in plot,,NA,NH
+12,3,S_P high,avena,,7.4,17.1,NH
+12,3,S_P high,stipa background,,43.2,105.4,NH
+13,4,control,stipa phytometer ,,7.4,41.7,NH
+13,4,control,avena,,7.4,103.7,NH
+13,6,S_P high,stipa phytometer ,,7.4,22,NH
+13,6,S_P high,avena,,43.2,162.9,NH
+13,6,S_P high,stipa background,,7.4,190.4,NH
+13,7,A high,stipa phytometer ,,7.4,29.1,NH
+13,7,A high,avena,,43.2,246.2,NH
+14,1,S_P high,stipa phytometer ,,7.4,44.2,NH
+14,1,S_P high,avena,,7.4,12.8,NH
+14,1,S_P high,stipa background,,43.2,443.4,NH
+14,5,A high,stipa phytometer ,,7.4,56,NH
+14,5,A high,avena,,43.2,197.4,NH
+14,7,control,stipa phytometer ,,43.4,109.4,NH
+14,7,control,avena,,7.4,20.6,NH
+15,5,control,stipa phytometer ,,7.4,23.9,NH
+15,5,control,avena,,7.4,54.6,NH
+15,6,A high,stipa phytometer ,,7.4,31.5,NH
+15,6,A high,avena,,7.4,36.1,NH
+15,7,S_P high,stipa phytometer ,,7.4,13.8,NH
+15,7,S_P high,avena,,7.4,23.9,NH
+15,7,S_P high,stipa background,,43.2,343.6,NH
+16,3,S_P high,stipa phytometer ,,7.4,15.8,NH
+16,3,S_P high,avena,,7.4,41.9,NH
+16,3,S_P high,stipa background,,43.2,141,NH
+16,6,A high,stipa phytometer ,,7.4,18.8,NH
+16,6,A high,avena,,7.4,56.2,NH
+16,8,control,stipa phytometer ,,7.4,22.1,NH
+16,8,control,avena,,7.4,7.8,NH
+extra,megacomp,,avena,,43.2,318.9,NH
+extra,outside,,avena,,43.2,134.3,NH
