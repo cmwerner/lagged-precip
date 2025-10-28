@@ -1,0 +1,74 @@
+---
+title: "Stipa Fecundity analysis"
+output: html_notebook
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(here)
+library(tidyverse)
+library(lme4)
+```
+
+Source data script
+```{r data-source}
+source('lagged-precip_data-cleaning.R')
+```
+
+Starting with a linear mixed-effects model analysis approach. Currently have treatment background categories, want to transition that to actual background densities in those plots. 
+
+Don't have seed estimates for each plot, would need to estimate those from biometric relationships for the ones we do have data for
+
+Avena density in avena_plot tibble
+Stipa density can be pulled from stipa_fec tibble probably
+```{r lme-analysis}
+# phytometers only for now
+stipa_fec_phy <- stipa_fec %>% 
+  filter(sp_type == "phyto", !is.na(sp_tillers)) %>%
+  mutate(seed_est = sp_tillers * seeds_tiller)  # individual-level estimates of total seed count
+
+stipa_count <- stipa_fec %>%
+  filter(!(is.na(sp_diam))) %>%
+  group_by(block, plot, year) %>%
+  summarise(
+    sp_bg_count = length(sp_diam) - 1
+  )
+
+# combining avena and stipa background densities
+stipa_phy <- stipa_fec_phy %>%
+  select(year, treatment, block, plot, bg, 
+         sp_diam, sp_tillers, seeds_tiller, seed_est) %>%
+  left_join(avena_plot, by = join_by(block, plot, year, bg, treatment)) %>%
+  select(-c(avena_count, area)) %>%
+  left_join(stipa_count, by = join_by(block, plot, year))
+
+m_tillers <- lmer(sp_tillers ~ avena_density + sp_bg_count + 
+                    treatment + (1|block) + (1|year),
+                  data = stipa_phy)
+
+summary(m_tillers)
+
+stipa_phy %>%
+  ggplot(aes(x = avena_density, y = sp_tillers, color = treatment)) +
+  geom_point() +
+  geom_smooth(method = 'lm') + 
+  scale_color_manual(values = drought.colors) +
+  theme_bw()
+
+stipa_phy %>%
+  ggplot(aes(x = sp_bg_count, y = sp_tillers, color = treatment)) +
+  geom_point() +
+  geom_smooth(method = 'lm') + 
+  scale_color_manual(values = drought.colors) +
+  theme_bw()
+
+stipa_phy %>%
+  ggplot(aes(x = avena_density, y = sp_diam, color = treatment)) +
+  geom_point() +
+  geom_smooth(method = 'lm') + 
+  scale_color_manual(values = drought.colors) +
+  theme_bw()
+
+```
+
