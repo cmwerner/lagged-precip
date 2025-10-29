@@ -1,4 +1,4 @@
----
+  ---
 title: "stipa-forb_figures"
 output: html_document
 ---
@@ -127,8 +127,10 @@ plot.vals.aeij %>%
   facet_wrap(vars(treatment)) +
   geom_point() +
   geom_errorbar() +
-  theme_cw() +
-  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+  geom_text(data = subset(plot.vals.aeij, (inclusion_ij + inclusion_eij) > 0), 
+            aes(label = species), hjust = 0, nudge_x = 0.05,
+            angle = 45, size = 3) +
+  theme_cw()
 
 ggsave('stipa-forb_prelim-fig_alphas-2.pdf', width = 11, height = 4, units = 'in')
 

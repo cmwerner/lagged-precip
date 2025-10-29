@@ -31,7 +31,7 @@ theme_cw <- function () {
 
 ## Reading in Data
 
-
+Read in biomass data and treatment key
 ```{r data-read}
 datpath <- "data/"
 
