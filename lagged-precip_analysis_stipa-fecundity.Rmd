@@ -8,7 +8,14 @@ knitr::opts_chunk$set(echo = TRUE)
 
 library(here)
 library(tidyverse)
-library(lme4)
+library(lme4) # linear mixed effects modeling
+library(rstan) # direct modeling through Stan
+library(tidybayes) # Manipulate Stan objects in a tidy way
+library(brms) # Bayesian modeling through Stan
+library(broom.mixed) # convernt brms model objects to data frames
+options(mc.cores = parallel::detectCores())
+rstan_options(auto_write = TRUE)
+
 ```
 
 Source data script
@@ -43,11 +50,27 @@ stipa_phy <- stipa_fec_phy %>%
   select(-c(avena_count, area)) %>%
   left_join(stipa_count, by = join_by(block, plot, year))
 
+# without size (what are treatment and density effects on fecundity, including those via size)
 m_tillers <- lmer(sp_tillers ~ avena_density + sp_bg_count + 
                     treatment + (1|block) + (1|year),
                   data = stipa_phy)
 
 summary(m_tillers)
+
+# with size (for a given size, what are treatment and density effects on fecundity?)
+# I think this is less useful for our purposes
+m_tillers_2 <- lmer(sp_tillers ~ avena_density + sp_bg_count + sp_diam +
+                    treatment + (1|block) + (1|year),
+                  data = stipa_phy)
+
+summary(m_tillers_2)
+
+# just modeling size
+m_size <- lmer(sp_diam ~ avena_density + sp_bg_count + 
+                 treatment + (1|block) + (1|year),
+               data = stipa_phy)
+summary(m_size)
+# interestingly, drought treatment has a negative effect on size but a positive effect on fecundity. Negative impacts of avena and stipa competition on fecundity seem to be through size
 
 stipa_phy %>%
   ggplot(aes(x = avena_density, y = sp_tillers, color = treatment)) +
@@ -69,6 +92,55 @@ stipa_phy %>%
   geom_smooth(method = 'lm') + 
   scale_color_manual(values = drought.colors) +
   theme_bw()
+
+```
+
+# BRMS approach 
+```{r stipa-brms}
+# preparing dataframe for brms analysis
+stipa_phy_2 <- stipa_phy %>% 
+  rename(
+    stipa_tillers = sp_tillers,
+    stipa_bg_count = sp_bg_count,
+    stipa_diam = sp_diam
+  ) %>%
+  filter(bg %in% c("sp_low", "sp_high", "a_low", "a_high", "control")) %>%
+  select(c(year, treatment, block, plot, bg, stipa_diam, stipa_tillers, 
+           avena_density, stipa_bg_count)) %>%
+  mutate(avena_dens_2 = avena_density/100,
+         year = as.factor(year))
+
+priors <- c(set_prior("normal(0,1)", class = "b", coef = "treatmentdrought"),
+            set_prior("normal(0,0.1)", class = "b", coef = "avena_dens_2"),
+            set_prior("normal(0,0.1)", class = "b", coef = "stipa_bg_count"))
+
+b_tillers <- brm(stipa_tillers ~ treatment * avena_dens_2 + treatment * stipa_bg_count + 
+                    (1|block) + year,
+                 family = poisson(),
+                 data = stipa_phy_2, 
+                 prior = priors, 
+                 control = list(adapt_delta = 0.97, max_treedepth = 12),
+                 iter = 3000, warmup = 1000,
+                 init = 0)
+rhat(b_tillers)
+
+# pairs(b_tillers)  # check sampling structure
+
+# prior_summary(b_tillers)  # check that priors are the same way as planned
+
+b_tidy <- tidy(b_tillers)
+summary(b_tillers)
+
+pp_check(b_tillers)
+
+plot(conditional_effects(b_tillers), ask = FALSE)
+```
+
+
+# Stan approach -- modeling stipa fecundity specifically
+Starting by just modeling stipa fecundity as a function of treatment, background, with random effects for block and year
+Matching structure of m_tillers above
+```{r stipa-stan}
 
 ```
 
