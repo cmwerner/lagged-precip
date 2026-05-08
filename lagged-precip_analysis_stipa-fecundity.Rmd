@@ -114,8 +114,8 @@ priors <- c(set_prior("normal(0,1)", class = "b", coef = "treatmentdrought"),
             set_prior("normal(0,0.1)", class = "b", coef = "avena_dens_2"),
             set_prior("normal(0,0.1)", class = "b", coef = "stipa_bg_count"))
 
-b_tillers <- brm(stipa_tillers ~ treatment * avena_dens_2 + treatment * stipa_bg_count + 
-                    (1|block) + year,
+b_tillers <- brm(stipa_tillers ~ treatment * avena_dens_2 + treatment * stipa_bg_count + treatment * year +
+                    (1|block),
                  family = poisson(),
                  data = stipa_phy_2, 
                  prior = priors, 
